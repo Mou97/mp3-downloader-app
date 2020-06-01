@@ -12,6 +12,8 @@ import android.net.Uri
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.os.Environment
+import android.view.MotionEvent
+import android.view.View
 import android.widget.Toast
 import kotlinx.android.synthetic.main.activity_main.*
 import java.io.File
@@ -30,7 +32,7 @@ class MainActivity : AppCompatActivity() {
 
         downloadButton.setOnClickListener {
 //            check permissions
-            if(checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_DENIED){
+            if(checkSelfPermission(Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_DENIED ){
 //                request permission
                 requestPermissions(arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE),STORAGE_PERMISSION_CODE)
             }else{
@@ -42,8 +44,19 @@ class MainActivity : AppCompatActivity() {
 
         }
 
-        playPauseBtn.setOnClickListener {
+        playPauseBtn.setOnTouchListener{ _ , event->
+            when(event.action){
+                MotionEvent.ACTION_DOWN->{
+                    mediaPlayer?.start()
+                }
+                MotionEvent.ACTION_CANCEL, MotionEvent.ACTION_UP->{
+                    mediaPlayer?.pause()
+                    mediaPlayer?.seekTo(0)
+                }
 
+            }
+
+            return@setOnTouchListener true
         }
 
     }
@@ -64,7 +77,7 @@ class MainActivity : AppCompatActivity() {
             setDescription("")
             setMimeType("audio/MP3")
             setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
-            setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, filename)
+            setDestinationInExternalFilesDir(applicationContext, Environment.DIRECTORY_DOWNLOADS, filename)
         }
         val manager = getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
         downloadID = manager.enqueue(request)
@@ -81,9 +94,24 @@ class MainActivity : AppCompatActivity() {
                 val status = cursor.getInt(cursor.getColumnIndex(DownloadManager.COLUMN_STATUS))
                 if (status == DownloadManager.STATUS_SUCCESSFUL){
                     this.runOnUiThread {
+
                         Toast.makeText(this, "done downloading", Toast.LENGTH_SHORT).show()
-                        mediaPlayer = MediaPlayer()
-                        mediaPlayer?.setDataSource(Environment.DIRECTORY_DOWNLOADS + filename)
+
+                        val path = getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS)?.path +"/" +filename
+
+                        println(path)
+                        mediaPlayer = MediaPlayer().apply {
+
+                            setDataSource(path)
+                            prepare()
+                            setOnPreparedListener {
+                                playPauseBtn.visibility = View.VISIBLE
+                                playPauseBtn.isClickable = true
+                                Toast.makeText(applicationContext, "Player ready", Toast.LENGTH_SHORT).show()
+
+                            }
+                        }
+
 //                        TODO: finish this
                     }
                 }

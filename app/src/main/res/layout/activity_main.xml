@@ -50,14 +50,15 @@
 
     <Button
         android:id="@+id/playPauseBtn"
-        android:layout_width="74dp"
+        android:layout_width="67dp"
         android:layout_height="67dp"
         android:layout_alignParentEnd="true"
         android:layout_alignParentBottom="true"
-        android:layout_marginEnd="168dp"
+        android:layout_marginEnd="174dp"
         android:layout_marginBottom="174dp"
-        android:background="@android:drawable/ic_media_play"
+        android:background="@drawable/play_pause"
         android:backgroundTint="#0A3B51"
+        android:clickable="false"
         android:visibility="invisible" />
 
 
