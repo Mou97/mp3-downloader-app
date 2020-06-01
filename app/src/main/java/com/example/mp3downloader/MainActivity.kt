@@ -12,8 +12,10 @@ import android.net.Uri
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.os.Environment
+import android.util.Patterns
 import android.view.MotionEvent
 import android.view.View
+import android.webkit.URLUtil
 import android.widget.Toast
 import kotlinx.android.synthetic.main.activity_main.*
 import java.io.File
@@ -44,19 +46,16 @@ class MainActivity : AppCompatActivity() {
 
         }
 
-        playPauseBtn.setOnTouchListener{ _ , event->
-            when(event.action){
-                MotionEvent.ACTION_DOWN->{
-                    mediaPlayer?.start()
-                }
-                MotionEvent.ACTION_CANCEL, MotionEvent.ACTION_UP->{
-                    mediaPlayer?.pause()
-                    mediaPlayer?.seekTo(0)
-                }
+        playPauseBtn.setOnClickListener{
+            if(mediaPlayer?.isPlaying!!) mediaPlayer?.pause() else mediaPlayer?.start()
 
+        }
+
+        stopButton.setOnClickListener {
+            if(mediaPlayer?.currentPosition != 0) {
+                mediaPlayer?.stop()
+//                mediaPlayer?.seekTo(0)
             }
-
-            return@setOnTouchListener true
         }
 
     }
@@ -64,6 +63,8 @@ class MainActivity : AppCompatActivity() {
     private fun startDownload() {
 
         val url = link.text.toString()
+        if (!Patterns.WEB_URL.matcher(url).matches() || !url.endsWith(".mp3"))
+            return Toast.makeText(applicationContext, "Not a valid MP3 url", Toast.LENGTH_SHORT).show()
 
         val filename = url.substring(url.lastIndexOf("/")+ 1)
         Toast.makeText(this, filename, Toast.LENGTH_SHORT).show()
@@ -83,6 +84,7 @@ class MainActivity : AppCompatActivity() {
         downloadID = manager.enqueue(request)
         val query = DownloadManager.Query().setFilterById(downloadID)
 
+//        Run the download on the background
         Thread(Runnable {
             var downloading = true
             while (downloading){
@@ -98,21 +100,19 @@ class MainActivity : AppCompatActivity() {
                         Toast.makeText(this, "done downloading", Toast.LENGTH_SHORT).show()
 
                         val path = getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS)?.path +"/" +filename
-
-                        println(path)
+//                       prepare the player in the background to avoid blocking the main thread
                         mediaPlayer = MediaPlayer().apply {
-
                             setDataSource(path)
-                            prepare()
+                            prepareAsync()
                             setOnPreparedListener {
                                 playPauseBtn.visibility = View.VISIBLE
                                 playPauseBtn.isClickable = true
-                                Toast.makeText(applicationContext, "Player ready", Toast.LENGTH_SHORT).show()
+                                stopButton.visibility = View.VISIBLE
+                                stopButton.isClickable = true
 
                             }
                         }
 
-//                        TODO: finish this
                     }
                 }
                 cursor.close()
